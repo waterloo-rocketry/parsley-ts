@@ -14,7 +14,7 @@ describe('ParsleyMessageSchema', () => {
             msgType: MsgType.ACTUATOR_CMD,
             boardTypeId: BoardTypeId.INJECTOR,
             boardInstId: BoardInstId.ROCKET,
-            data: { actuatorId: 0x00, actuatorState: 0x00 },
+            data: { time: 1234567890, actuator: 'VENT', cmd_state: 'ON' },
         })
         expect(result.success).toBe(true)
     })
