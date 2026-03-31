@@ -1,35 +1,43 @@
 import { z } from 'zod'
 import type { AnyParsleyPayload } from './payloads.js'
-import {
-    MsgPrioSchema,
-    MsgTypeSchema,
-    BoardTypeIdSchema,
-    BoardInstIdSchema,
-} from './messageTypes.js'
+import { MsgType } from './messageTypes.js'
 
 // ============================================================
 // Parsed CAN Message
 // ============================================================
 
-/**
- * Schema for a fully parsed CAN message as produced by the
- * Parsley parser. The `data` field contains message-type-specific
- * payload fields and is null when the message carries no payload.
- *
- * For typed payload validation per message type, use
- * `getPayloadSchema()` from `payloads.ts`.
- */
-export const ParsleyMessageSchema = z.object({
-    msgPrio: MsgPrioSchema,
-    msgType: MsgTypeSchema,
-    boardTypeId: BoardTypeIdSchema,
-    boardInstId: BoardInstIdSchema,
+const msgTypeKeys = Object.keys(MsgType) as string[]
+
+export const ParsleyObjectSchema = z.object({
+    board_type_id: z.string(),
+    board_inst_id: z.string(),
+    msg_prio: z.string().min(1, 'msg_prio must be non-empty'),
+    msg_type: z.string().refine(
+        (val) => msgTypeKeys.includes(val),
+        (val) => ({ message: `Invalid msg_type type '${val}'` })
+    ),
+    msg_metadata: z.union([
+        z.number().int().min(0).max(255),
+        z.string().min(1, 'msg_metadata string must be non-empty'),
+    ]),
     data: z.record(z.string(), z.union([z.string(), z.number()])).nullable(),
 })
 
-export type ParsleyMessage = Omit<
-    z.infer<typeof ParsleyMessageSchema>,
-    'data'
-> & {
+export type ParsleyObject = Omit<z.infer<typeof ParsleyObjectSchema>,'data'> & {
     data: AnyParsleyPayload | null
 }
+
+// ============================================================
+// Parsley Error
+// ============================================================
+
+export const ParsleyErrorSchema = z.object({
+    board_type_id: z.string(),
+    board_inst_id: z.string(),
+    msg_type: z.string(),
+    msg_metadata: z.union([z.number(), z.string()]),
+    msg_data: z.string(),
+    error: z.string(),
+})
+
+export type ParsleyError = z.infer<typeof ParsleyErrorSchema>
