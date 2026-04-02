@@ -10,7 +10,7 @@
         // See also https://aka.ms/tsconfig/module
         "module": "nodenext",
         "target": "esnext",
-        // For nodejs:
+        // For nodejs and bigint support
         "lib": ["esnext"],
         "types": ["node"],
         // and npm install -D @types/node
@@ -33,7 +33,6 @@
 
         // Recommended Options
         "strict": true,
-        "jsx": "react-jsx",
         "verbatimModuleSyntax": true,
         "isolatedModules": true,
         "noUncheckedSideEffectImports": true,
@@ -47,5 +46,5 @@
         "declarationMap": true,
         "allowSyntheticDefaultImports": true
     },
-    "include": ["./src/**.*"]
+    "include": ["./src"]
 }
