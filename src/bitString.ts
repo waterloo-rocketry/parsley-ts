@@ -1,74 +1,72 @@
 export class BitString{
-    data: bigint;
+    private data: bigint;
     length: number;
 
 
-    public constructor (data: Uint8Array = new Uint8Array(), data_bit_length: number = 0) {
-        this.length = data_bit_length || (data.length * 8);
-        this.data = BigInt(0);
+    public constructor (data: Uint8Array = new Uint8Array(), dataBitLength: number = 0) {
+        this.length = dataBitLength || (data.length * 8);
+        this.data = 0n;
         
         for (const byte of data) {
             this.data = (this.data << 8n) | BigInt(byte)
         }
     }
 
-    public pop(field_length: number, variable_length: boolean = false): bigint { 
+    public pop(fieldLength: number, variableLength: boolean = false): bigint { 
         /*
-        Returns the next field_length most significant bits of data as a bigint.
+        Returns the next fieldLength most significant bits of data as a bigint.
 
         The data returned will be LSB-aligned, so for example, asking for 12 bits will return:
         0000BBBB BBBBBBBB
         where B represents a data bit.
         */
 
-        // In the Python version, pop() returns bytes but then every field decoder 
-        // lowkey converts it back into bytes xd, so just return bigint directly
+        // Python's pop() returns bytes, but every field decoder immediately converts
+        // it back to int. We return bigint directly to skip that round-trip.
        
 
-        if (field_length > this.length) {
-            if (variable_length) {
-                field_length = this.length;
-            } else {
-                throw new RangeError(`Cannot pop ${field_length} bits from a BitString of length ${this.length}, try setting variable_length to true.`);
-            }
-        }
+        if (fieldLength > this.length && !variableLength)
+            throw new RangeError(`Cannot pop ${fieldLength} bits from a BitString of length ${this.length}, try setting variableLength to true.`);
+        fieldLength = fieldLength > this.length ? this.length : fieldLength;
 
-        this.length -= field_length;
-        const result: bigint = this.data >> BigInt(this.length); // extract the field_length most significant bits
-        this.data = this.data & ((BigInt(1) << BigInt(this.length)) - BigInt(1)); // and then mask them out
+        this.length -= fieldLength;
+        const result: bigint = this.data >> BigInt(this.length); // extract the fieldLength most significant bits
+        // Mask out the bits we just extracted by AND-ing with a bitmask of
+        // this.length 1-bits. e.g. if 5 bits remain: (1 << 5) - 1 = 0b11111
+        this.data = this.data & ((1n << BigInt(this.length)) - 1n);
         return result;
     }
 
-    public push(value: bigint | number, field_length: number): void {
+    public push(value: bigint | number, fieldLength: number): void {
         /*
-        Appends the next field_length least significant bits of data from value (to the back).
+        Appends the next fieldLength least significant bits of data from value (to the back).
 
         So for example, appending 6 bits from:
         10110000
         will append only 110000
         */
         value = BigInt(value);
-        if (field_length < 0) {
-            throw new Error(`Field length must be non-negative, got ${field_length}.`);
+        if (fieldLength < 0) {
+            throw new Error(`Field length must be non-negative, got ${fieldLength}.`);
         }
 
-        this.length += field_length;
-        value = value & ((BigInt(1) << BigInt(field_length)) - BigInt(1)); // extract the field_length least significant bits
-        this.data = value | (this.data << BigInt(field_length)); // shift the new bits to the left and then add them to the existing data
+        this.length += fieldLength;
+        value = value & ((1n << BigInt(fieldLength)) - 1n); // extract the fieldLength least significant bits
+        this.data = value | (this.data << BigInt(fieldLength)); // shift the new bits to the left and then add them to the existing data
     }
 
-    public push_front(value: bigint | number, field_length: number): void {
+    public pushFront(value: bigint | number, fieldLength: number): void {
         /*
-        Prepends the next field_length least significant bits of data from value (to the front).
+        Prepends the next fieldLength least significant bits of data from value (to the front).
         */
 
         value = BigInt(value);
-        if (field_length < 0) {
-            throw new Error(`Field length must be non-negative, got ${field_length}.`);
+        if (fieldLength < 0) {
+            throw new Error(`Field length must be non-negative, got ${fieldLength}.`);
         }
 
         this.data = (value << BigInt(this.length)) | this.data; // shift the new bits to the left and then add them to the existing data
-        this.length += field_length;
+        this.length += fieldLength;
     }
 
 }
