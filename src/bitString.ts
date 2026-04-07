@@ -3,8 +3,8 @@ export class BitString{
     length: number;
 
 
-    public constructor (data: Uint8Array = new Uint8Array(), dataBitLength: number = 0) {
-        this.length = dataBitLength || (data.length * 8);
+    public constructor (data: Uint8Array = new Uint8Array(), dataBitLength?: number) {
+        this.length = dataBitLength ?? (data.length * 8);
         this.data = 0n;
         
         for (const byte of data) {
@@ -23,8 +23,9 @@ export class BitString{
 
         // Python's pop() returns bytes, but every field decoder immediately converts
         // it back to int. We return bigint directly to skip that round-trip.
-       
-
+        if (fieldLength < 0) {
+            throw new RangeError(`Field length must be non-negative, got ${fieldLength}.`);
+        }
         if (fieldLength > this.length && !variableLength)
             throw new RangeError(`Cannot pop ${fieldLength} bits from a BitString of length ${this.length}, try setting variableLength to true.`);
         fieldLength = fieldLength > this.length ? this.length : fieldLength;
@@ -65,7 +66,8 @@ export class BitString{
             throw new Error(`Field length must be non-negative, got ${fieldLength}.`);
         }
 
-        this.data = (value << BigInt(this.length)) | this.data; // shift the new bits to the left and then add them to the existing data
+        value = value & ((1n << BigInt(fieldLength)) - 1n); // extract the fieldLength least significant bits
+        this.data = (value << BigInt(this.length)) | this.data; // prepend to the front
         this.length += fieldLength;
     }
 
