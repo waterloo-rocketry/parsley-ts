@@ -143,6 +143,20 @@ describe('ParsleyErrorSchema', () => {
         expect(result.success).toBe(true)
     })
 
+    it('should reject msg_metadata with invalid types', () => {
+        const base = {
+            board_type_id: 'ANY',
+            board_inst_id: 'ANY',
+            msg_type: 'LEDS_ON',
+            msg_data: '0x00',
+            error: 'bad metadata',
+        }
+        for (const bad of [{}, [], true]) {
+            const result = ParsleyErrorSchema.safeParse({ ...base, msg_metadata: bad })
+            expect(result.success).toBe(false)
+        }
+    })
+
     it('should reject an error missing required fields', () => {
         const result = ParsleyErrorSchema.safeParse({
             error: 'something broke',
