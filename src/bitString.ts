@@ -2,7 +2,6 @@ export class BitString{
     private data: bigint;
     length: number;
 
-
     public constructor (data: Uint8Array = new Uint8Array(), dataBitLength?: number) {
         this.length = dataBitLength ?? (data.length * 8);
         this.data = 0n;
