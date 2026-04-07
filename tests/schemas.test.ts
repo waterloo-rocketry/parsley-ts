@@ -86,6 +86,18 @@ describe('ParsleyObjectSchema', () => {
         expect(result.success).toBe(false)
     })
 
+    it('should reject negative msg_metadata int', () => {
+        const result = ParsleyObjectSchema.safeParse({
+            board_type_id: 'ANY',
+            board_inst_id: 'ANY',
+            msg_prio: 'HIGH',
+            msg_type: 'LEDS_ON',
+            msg_metadata: -1,
+            data: null,
+        })
+        expect(result.success).toBe(false)
+    })
+
     it('should reject empty msg_metadata string', () => {
         const result = ParsleyObjectSchema.safeParse({
             board_type_id: 'ANY',
@@ -155,6 +167,30 @@ describe('ParsleyErrorSchema', () => {
             const result = ParsleyErrorSchema.safeParse({ ...base, msg_metadata: bad })
             expect(result.success).toBe(false)
         }
+    })
+
+    it('should accept empty string msg_metadata (permissive)', () => {
+        const result = ParsleyErrorSchema.safeParse({
+            board_type_id: 'ANY',
+            board_inst_id: 'ANY',
+            msg_type: 'LEDS_ON',
+            msg_metadata: '',
+            msg_data: '0x00',
+            error: 'bad parse',
+        })
+        expect(result.success).toBe(true)
+    })
+
+    it('should accept out-of-range int msg_metadata (permissive)', () => {
+        const result = ParsleyErrorSchema.safeParse({
+            board_type_id: 'ANY',
+            board_inst_id: 'ANY',
+            msg_type: 'LEDS_ON',
+            msg_metadata: 256,
+            msg_data: '0x00',
+            error: 'bad parse',
+        })
+        expect(result.success).toBe(true)
     })
 
     it('should reject an error missing required fields', () => {
