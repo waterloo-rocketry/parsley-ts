@@ -1,12 +1,12 @@
 import { z } from 'zod'
 import type { AnyParsleyPayload } from './payloads.js'
-import { MsgType } from './messageTypes.js'
+import { msg_type } from './messageTypes.js'
 
 // ============================================================
 // Parsed CAN Message
 // ============================================================
 
-const msgTypeKeys = Object.keys(MsgType) as string[]
+const msgTypeKeys = Object.keys(msg_type) as string[]
 
 export const ParsleyObjectSchema = z.object({
     board_type_id: z.string(),
