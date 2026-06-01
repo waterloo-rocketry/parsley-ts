@@ -1,14 +1,14 @@
 import { z } from 'zod'
 import {
-    BoardTypeId,
-    BoardInstId,
-    ActuatorId,
-    ActuatorState,
-    AltimeterId,
-    AltArmState,
-    AnalogSensorId,
-    DemSensor2DId,
-    DemSensor3DId,
+    board_type_id,
+    board_inst_id,
+    actuator_id,
+    actuator_state,
+    altimeter_id,
+    alt_arm_state,
+    analog_sensor_id,
+    dem_2d_sensor_id,
+    dem_3d_sensor_id,
 } from './messageTypes.js'
 
 // ============================================================
@@ -19,15 +19,15 @@ function enumKeys<T extends Record<string, number>>(obj: T) {
     return z.enum(Object.keys(obj) as [string, ...string[]])
 }
 
-const BoardTypeIdKey = enumKeys(BoardTypeId)
-const BoardInstIdKey = enumKeys(BoardInstId)
-const ActuatorIdKey = enumKeys(ActuatorId)
-const ActuatorStateKey = enumKeys(ActuatorState)
-const AltimeterIdKey = enumKeys(AltimeterId)
-const AltArmStateKey = enumKeys(AltArmState)
-const AnalogSensorIdKey = enumKeys(AnalogSensorId)
-const DemSensor2DIdKey = enumKeys(DemSensor2DId)
-const DemSensor3DIdKey = enumKeys(DemSensor3DId)
+const board_type_idKey = enumKeys(board_type_id)
+const board_inst_idKey = enumKeys(board_inst_id)
+const actuator_idKey = enumKeys(actuator_id)
+const actuator_stateKey = enumKeys(actuator_state)
+const altimeter_idKey = enumKeys(altimeter_id)
+const alt_arm_stateKey = enumKeys(alt_arm_state)
+const analog_sensor_idKey = enumKeys(analog_sensor_id)
+const dem_2d_sensor_idKey = enumKeys(dem_2d_sensor_id)
+const dem_3d_sensor_idKey = enumKeys(dem_3d_sensor_id)
 
 // ============================================================
 // Base Payloads
@@ -48,8 +48,8 @@ export const GeneralBoardStatusPayload = BasePayload.extend({
 
 export const ResetCmdPayload = BasePayload.extend({
     msg_metadata: z.number(),
-    board_type_id: BoardTypeIdKey,
-    board_inst_id: BoardInstIdKey,
+    board_type_id: board_type_idKey,
+    board_inst_id: board_inst_idKey,
 })
 
 export const DebugRawPayload = BasePayload.extend({
@@ -59,8 +59,8 @@ export const DebugRawPayload = BasePayload.extend({
 
 export const ConfigSetPayload = BasePayload.extend({
     msg_metadata: z.number(),
-    board_type_id: BoardTypeIdKey,
-    board_inst_id: BoardInstIdKey,
+    board_type_id: board_type_idKey,
+    board_inst_id: board_inst_idKey,
     config_id: z.number(),
     config_value: z.number(),
 })
@@ -72,46 +72,46 @@ export const ConfigStatusPayload = BasePayload.extend({
 })
 
 export const ActuatorCmdPayload = BasePayload.extend({
-    msg_metadata: ActuatorIdKey,
-    cmd_state: ActuatorStateKey,
+    msg_metadata: actuator_idKey,
+    cmd_state: actuator_stateKey,
 })
 
 export const ActuatorStatusPayload = BasePayload.extend({
-    msg_metadata: ActuatorIdKey,
-    cmd_state: ActuatorStateKey,
-    curr_state: ActuatorStateKey,
+    msg_metadata: actuator_idKey,
+    cmd_state: actuator_stateKey,
+    curr_state: actuator_stateKey,
 })
 
 export const AltArmCmdPayload = BasePayload.extend({
-    msg_metadata: AltimeterIdKey,
-    alt_arm_state: AltArmStateKey,
+    msg_metadata: altimeter_idKey,
+    alt_arm_state: alt_arm_stateKey,
 })
 
 export const AltArmStatusPayload = BasePayload.extend({
-    msg_metadata: AltimeterIdKey,
-    alt_arm_state: AltArmStateKey,
+    msg_metadata: altimeter_idKey,
+    alt_arm_state: alt_arm_stateKey,
     drogue_v: z.number(),
     main_v: z.number(),
 })
 
 export const SensorAnalog16Payload = BasePayload.extend({
-    msg_metadata: AnalogSensorIdKey,
+    msg_metadata: analog_sensor_idKey,
     value: z.number(),
 })
 
 export const SensorAnalog32Payload = BasePayload.extend({
-    msg_metadata: AnalogSensorIdKey,
+    msg_metadata: analog_sensor_idKey,
     value: z.number(),
 })
 
 export const Sensor2DAnalog24Payload = BasePayload.extend({
-    msg_metadata: DemSensor2DIdKey,
+    msg_metadata: dem_2d_sensor_idKey,
     value_x: z.number(),
     value_y: z.number(),
 })
 
 export const Sensor3DAnalog16Payload = BasePayload.extend({
-    msg_metadata: DemSensor3DIdKey,
+    msg_metadata: dem_3d_sensor_idKey,
     value_x: z.number(),
     value_y: z.number(),
     value_z: z.number(),
