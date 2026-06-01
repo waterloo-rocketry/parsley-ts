@@ -51,8 +51,8 @@ describe('msg_prio', () => {
 })
 
 describe('msg_type', () => {
-    it('should have 24 message types', () => {
-        expect(Object.keys(msg_type)).toHaveLength(24)
+    it('should have 26 message types', () => {
+        expect(Object.keys(msg_type)).toHaveLength(26)
     })
 
     it('should validate valid message type values', () => {
@@ -74,7 +74,7 @@ describe('msg_type', () => {
         expect(msg_type.SENSOR_2D_ANALOG24).toBe(0x0c)
         expect(msg_type.SENSOR_3D_ANALOG16).toBe(0x0d)
         expect(msg_type.GPS_TIMESTAMP).toBe(0x0e)
-        expect(msg_type.LEDS_OFF).toBe(0x17)
+        expect(msg_type.LEDS_OFF).toBe(0x19)
     })
 })
 
@@ -99,37 +99,37 @@ describe('board_type_id', () => {
 })
 
 describe('board_inst_id', () => {
-    it('should have 8 board instances', () => {
-        expect(Object.keys(board_inst_id)).toHaveLength(8)
+    it('should have 12 board instances', () => {
+        expect(Object.keys(board_inst_id)).toHaveLength(12)
     })
 
     it('should validate valid board instance values', () => {
         expect(board_inst_id_schema.safeParse(0x00).success).toBe(true)
-        expect(board_inst_id_schema.safeParse(0x07).success).toBe(true)
+        expect(board_inst_id_schema.safeParse(0x0B).success).toBe(true)
     })
 
     it('should reject invalid board instance values', () => {
-        expect(board_inst_id_schema.safeParse(0x08).success).toBe(false)
+        expect(board_inst_id_schema.safeParse(0x0C).success).toBe(false)
     })
 })
 
 describe('actuator_id', () => {
-    it('should have 23 actuator IDs', () => {
-        expect(Object.keys(actuator_id)).toHaveLength(23)
+    it('should have 29 actuator IDs', () => {
+        expect(Object.keys(actuator_id)).toHaveLength(29)
     })
 
     it('should validate valid actuator ID values', () => {
         expect(actuator_id_schema.safeParse(0x00).success).toBe(true)
-        expect(actuator_id_schema.safeParse(0x16).success).toBe(true)
+        expect(actuator_id_schema.safeParse(0x1C).success).toBe(true)
     })
 
     it('should reject invalid actuator ID values', () => {
-        expect(actuator_id_schema.safeParse(0x17).success).toBe(false)
+        expect(actuator_id_schema.safeParse(0x1D).success).toBe(false)
     })
 
     it('should have correct hex values', () => {
         expect(actuator_id.ACTUATOR_OX_INJECTOR_VALVE).toBe(0x00)
-        expect(actuator_id.ACTUATOR_PAYLOAD_PZT_ARM).toBe(0x16)
+        expect(actuator_id.ACTUATOR_PAYLOAD_PZT_ARM).toBe(0x1A)
     })
 })
 
@@ -179,22 +179,22 @@ describe('alt_arm_state', () => {
 })
 
 describe('analog_sensor_id', () => {
-    it('should have 61 sensor IDs', () => {
-        expect(Object.keys(analog_sensor_id)).toHaveLength(61)
+    it('should have 63 sensor IDs', () => {
+        expect(Object.keys(analog_sensor_id)).toHaveLength(63)
     })
 
     it('should validate valid sensor ID values', () => {
         expect(analog_sensor_id_schema.safeParse(0x00).success).toBe(true)
-        expect(analog_sensor_id_schema.safeParse(0x3C).success).toBe(true)
+        expect(analog_sensor_id_schema.safeParse(0x3E).success).toBe(true)
     })
 
     it('should reject invalid sensor ID values', () => {
-        expect(analog_sensor_id_schema.safeParse(0x3D).success).toBe(false)
+        expect(analog_sensor_id_schema.safeParse(0x3F).success).toBe(false)
     })
 
     it('should have correct hex values for boundary entries', () => {
         expect(analog_sensor_id.SENSOR_5V_VOLT).toBe(0x00)
-        expect(analog_sensor_id.SENSOR_PAYLOAD_SENSOR_CURR_READING).toBe(0x3C)
+        expect(analog_sensor_id.SENSOR_PAYLOAD_SENSOR_CURR_READING).toBe(0x3D)
     })
 })
 
@@ -230,7 +230,7 @@ describe('dem_3d_sensor_id', () => {
 
 describe('board_error_bitfield_offset', () => {
     it('should have 16 error bitfield offsets', () => {
-        expect(Object.keys(board_error_bitfield_offset)).toHaveLength(16)
+        expect(Object.keys(board_error_bitfield_offset)).toHaveLength(17)
     })
 
     it('should validate valid offset values', () => {
@@ -239,6 +239,6 @@ describe('board_error_bitfield_offset', () => {
     })
 
     it('should reject invalid offset values', () => {
-        expect(board_error_bitfield_offset_schema.safeParse(0x10).success).toBe(false)
+        expect(board_error_bitfield_offset_schema.safeParse(0x11).success).toBe(false)
     })
 })
