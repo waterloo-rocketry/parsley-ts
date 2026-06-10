@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { AnyParsleyPayload } from './payloads.js'
-import { msg_type } from './messageTypes.js'
+import { msg_type } from './message_types.js'
 
 // ============================================================
 // Parsed CAN Message
