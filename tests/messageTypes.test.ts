@@ -24,7 +24,7 @@ import {
     dem_3d_sensor_id_schema,
     board_error_bitfield_offset,
     board_error_bitfield_offset_schema,
-} from '../src/messageTypes.js'
+} from '../src/message_types.js'
 
 describe('msg_prio', () => {
     it('should have 4 priorities', () => {
@@ -52,7 +52,7 @@ describe('msg_prio', () => {
 
 describe('msg_type', () => {
     it('should have 26 message types', () => {
-        expect(Object.keys(msg_type)).toHaveLength(26)
+        expect(Object.keys(msg_type)).toHaveLength(27)
     })
 
     it('should validate valid message type values', () => {
@@ -74,7 +74,7 @@ describe('msg_type', () => {
         expect(msg_type.SENSOR_2D_ANALOG24).toBe(0x0c)
         expect(msg_type.SENSOR_3D_ANALOG16).toBe(0x0d)
         expect(msg_type.GPS_TIMESTAMP).toBe(0x0e)
-        expect(msg_type.LEDS_OFF).toBe(0x19)
+        expect(msg_type.LEDS_OFF).toBe(0x20)
     })
 })
 
@@ -180,7 +180,7 @@ describe('alt_arm_state', () => {
 
 describe('analog_sensor_id', () => {
     it('should have 63 sensor IDs', () => {
-        expect(Object.keys(analog_sensor_id)).toHaveLength(63)
+        expect(Object.keys(analog_sensor_id)).toHaveLength(64)
     })
 
     it('should validate valid sensor ID values', () => {
@@ -189,12 +189,12 @@ describe('analog_sensor_id', () => {
     })
 
     it('should reject invalid sensor ID values', () => {
-        expect(analog_sensor_id_schema.safeParse(0x3F).success).toBe(false)
+        expect(analog_sensor_id_schema.safeParse(0x40).success).toBe(false)
     })
 
     it('should have correct hex values for boundary entries', () => {
         expect(analog_sensor_id.SENSOR_5V_VOLT).toBe(0x00)
-        expect(analog_sensor_id.SENSOR_PAYLOAD_SENSOR_CURR_READING).toBe(0x3D)
+        expect(analog_sensor_id.SENSOR_PAYLOAD_SENSOR_CURR_READING).toBe(0x3E)
     })
 })
 
