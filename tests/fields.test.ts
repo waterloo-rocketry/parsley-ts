@@ -135,6 +135,13 @@ describe('Enum', () => {
 })
 
 describe('Numeric', () => {
+    it('rejects data with bits beyond its length', () => {
+        const n = new Numeric('num', 10, 1, true, true)
+        expect(n.decode(0b1000000001n)).toBe(-511)
+        expect(() => n.decode(0b11000000001n)).toThrow()
+        expect(() => n.decode(0b10000000001n)).toThrow()
+    })
+
     it('basic encode/decode', () => {
         const n = new Numeric('num', 8)
         const [data, length] = n.encode(250)

@@ -178,6 +178,9 @@ export class Numeric extends Field {
     }
 
     public decode(data: bigint): number {
+        if (data >> BigInt(this.length) !== 0n) {
+            throw new Error(`Numeric "${this.name}": data 0x${data.toString(16)} has bits beyond its ${this.length}-bit length`);
+        }
         const byteCount = Math.ceil(this.length / 8);
         let raw = this.big_endian ? data : byteSwap(data, byteCount);
 
