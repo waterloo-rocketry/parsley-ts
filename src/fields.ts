@@ -17,6 +17,9 @@ export abstract class Field {
 
     constructor(name: string, length: number, unit: string = "") {
         this.name = name;
+        if (length <= 0 || !Number.isInteger(length)) {
+            throw new Error(`Field ${name}: length must be a positive integer, got ${length}`)
+        }
         this.length = length;
         this.unit = unit;
         this.variable_length = false;

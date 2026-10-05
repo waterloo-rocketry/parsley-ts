@@ -1,8 +1,35 @@
 import { describe, it, expect } from 'vitest'
-import { ASCII, Enum, Numeric, Floating, Switch, Bitfield } from '../src/fields.js'
+import { Field, ASCII, Enum, Numeric, Floating, Switch, Bitfield } from '../src/fields.js'
 import { board_type_id, board_error_bitfield_offset } from '../src/message_types.js'
 
 // Adapted from waterloo-rocketry/parsley tests/test_fields.py.
+
+// Field is an abstract class and cannot be directly instantiated. this
+// subclass provides access to the Field base class's constructor logic 
+class StubField extends Field {
+    decode(): unknown {
+        return null
+    }
+    encode(): readonly [bigint, number] {
+        return [0n, this.length]
+    }
+}
+
+describe('Field (base class)', () => {
+    it('rejects non-positive lengths', () => {
+        expect(() => new StubField('field', 0)).toThrow()
+        expect(() => new StubField('field', -1)).toThrow()
+    })
+
+    it('rejects non-integer lengths', () => {
+        expect(() => new StubField('field', 8.5)).toThrow()
+        expect(() => new StubField('field', NaN)).toThrow()
+    })
+
+    it('accepts valid positive integer length', () => {
+        expect(() => new StubField('field', 8)).not.toThrow()
+    })
+})
 
 describe('ASCII', () => {
     it('encode and decode round-trip', () => {
