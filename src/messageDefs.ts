@@ -45,17 +45,16 @@ export const MESSAGE_SID_LEN =
 export const TIMESTAMP_2 = new Numeric('time', 16, 1 / 1000, false, true, 's')
 
 // Base class — owns the generic decoder
-
 export class ParsleyDataPayload {
-    static fields: Field[] = []
-    static metadataField: Field = MESSAGE_METADATA
+    static readonly fields: readonly Field[] = []
+    static readonly metadataField: Field = MESSAGE_METADATA
 
     constructor(data: Record<string, unknown>) {
         Object.assign(this, data)
     }
 
     static decode<T extends ParsleyDataPayload>(
-        this: { new (data: Record<string, unknown>): T; fields: Field[] },
+        this: { new (data: Record<string, unknown>): T; readonly fields: readonly Field[] },
         bs: BitString,
     ): T {
         const data: Record<string, unknown> = {}
@@ -66,275 +65,178 @@ export class ParsleyDataPayload {
     }
 }
 
+// properties corresponding to a decoded set of Fields
+type PayloadOf<F extends readonly Field[]> = {
+    [P in F[number] as P['name']]: ReturnType<P['decode']>
+}
+
+// changes constructor signature to include decoded field properties
+type PayloadBase<D = unknown> = Omit<typeof ParsleyDataPayload, 'prototype'> & {
+    new (data: Record<string, unknown>): ParsleyDataPayload & D    
+}
+
+// factory function for defining new message types
+function payload<const F extends readonly Field[]>(
+    fields: F,
+    metadataField: Field = MESSAGE_METADATA,
+): PayloadBase<PayloadOf<F>> {
+    return class extends ParsleyDataPayload {
+        static override fields = fields
+        static override metadataField = metadataField
+    } as unknown as PayloadBase<PayloadOf<F>>;
+}
+
 // One class per msg_type (24 total: UNDEFINED + 23 real types)
 
-export class UNDEFINED extends ParsleyDataPayload {
-    static override fields: Field[] = []
-}
+export class UNDEFINED extends payload([]) {}
 
-export class GENERAL_BOARD_STATUS extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Bitfield('board_error_bitfield', 32, 'E_NOMINAL', board_error_bitfield_offset),
-    ]
-    declare time: number
-    declare board_error_bitfield: string
-}
+export class GENERAL_BOARD_STATUS extends payload([
+    TIMESTAMP_2,
+    new Bitfield('board_error_bitfield', 32, 'E_NOMINAL', board_error_bitfield_offset),
+]) {}
 
-export class RESET_CMD extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Enum('board_type_id', 8, board_type_id),
-        new Enum('board_inst_id', 8, board_inst_id),
-    ]
-    declare time: number
-    declare board_type_id: keyof typeof board_type_id
-    declare board_inst_id: keyof typeof board_inst_id
-}
+export class RESET_CMD extends payload([
+    TIMESTAMP_2,
+    new Enum('board_type_id', 8, board_type_id),
+    new Enum('board_inst_id', 8, board_inst_id),
+]) {}
 
-export class DEBUG_RAW extends ParsleyDataPayload {
-    static override fields: Field[] = [TIMESTAMP_2, new ASCII('string', 48)]
-    declare time: number
-    declare string: string
-}
+export class DEBUG_RAW extends payload([
+    TIMESTAMP_2,
+    new ASCII('string', 48),
+]) {}
 
-export class CONFIG_SET extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Enum('board_type_id', 8, board_type_id),
-        new Enum('board_inst_id', 8, board_inst_id),
-        new Numeric('config_id', 16),
-        new Numeric('config_value', 16),
-    ]
-    declare time: number
-    declare board_type_id: keyof typeof board_type_id
-    declare board_inst_id: keyof typeof board_inst_id
-    declare config_id: number
-    declare config_value: number
-}
+export class CONFIG_SET extends payload([
+    TIMESTAMP_2,
+    new Enum('board_type_id', 8, board_type_id),
+    new Enum('board_inst_id', 8, board_inst_id),
+    new Numeric('config_id', 16),
+    new Numeric('config_value', 16),
+]) {}
 
-export class CONFIG_STATUS extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('config_id', 16),
-        new Numeric('config_value', 16),
-    ]
-    declare time: number
-    declare config_id: number
-    declare config_value: number
-}
+export class CONFIG_STATUS extends payload([
+    TIMESTAMP_2,
+    new Numeric('config_id', 16),
+    new Numeric('config_value', 16),
+]) {}
 
-export class ACTUATOR_CMD extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Enum('cmd_state', 8, actuator_state),
-    ]
-    static override metadataField: Field = new Enum('msg_metadata', 8, actuator_id)
-    declare time: number
-    declare cmd_state: keyof typeof actuator_state
-}
+export class ACTUATOR_CMD extends payload([
+    TIMESTAMP_2,
+    new Enum('cmd_state', 8, actuator_state),
+], new Enum('msg_metadata', 8, actuator_id)) {}
 
-export class ACTUATOR_STATUS extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Enum('cmd_state', 8, actuator_state),
-        new Enum('curr_state', 8, actuator_state),
-    ]
-    static override metadataField: Field = new Enum('msg_metadata', 8, actuator_id)
-    declare time: number
-    declare cmd_state: keyof typeof actuator_state
-    declare curr_state: keyof typeof actuator_state
-}
+export class ACTUATOR_STATUS extends payload([
+    TIMESTAMP_2,
+    new Enum('cmd_state', 8, actuator_state),
+    new Enum('curr_state', 8, actuator_state),
+], new Enum('msg_metadata', 8, actuator_id)) {}
 
-export class ALT_ARM_CMD extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Enum('alt_arm_state', 8, alt_arm_state),
-    ]
-    static override metadataField: Field = new Enum('msg_metadata', 8, altimeter_id)
-    declare time: number
-    declare alt_arm_state: keyof typeof alt_arm_state
-}
+export class ALT_ARM_CMD extends payload([
+    TIMESTAMP_2,
+    new Enum('alt_arm_state', 8, alt_arm_state),
+], new Enum('msg_metadata', 8, altimeter_id)) {}
 
-export class ALT_ARM_STATUS extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Enum('alt_arm_state', 8, alt_arm_state),
-        new Numeric('drogue_v', 16),
-        new Numeric('main_v', 16),
-    ]
-    static override metadataField: Field = new Enum('msg_metadata', 8, altimeter_id)
-    declare time: number
-    declare alt_arm_state: keyof typeof alt_arm_state
-    declare drogue_v: number
-    declare main_v: number
-}
+export class ALT_ARM_STATUS extends payload([
+    TIMESTAMP_2,
+    new Enum('alt_arm_state', 8, alt_arm_state),
+    new Numeric('drogue_v', 16),
+    new Numeric('main_v', 16),
+], new Enum('msg_metadata', 8, altimeter_id)) {}
 
-export class SENSOR_ANALOG16 extends ParsleyDataPayload {
-    static override fields: Field[] = [TIMESTAMP_2, new Numeric('value', 16)]
-    static override metadataField: Field = new Enum('msg_metadata', 8, analog_sensor_id)
-    declare time: number
-    declare value: number
-}
+export class SENSOR_ANALOG16 extends payload([
+    TIMESTAMP_2,
+    new Numeric('value', 16),
+], new Enum('msg_metadata', 8, analog_sensor_id)) {}
 
-export class SENSOR_ANALOG32 extends ParsleyDataPayload {
-    static override fields: Field[] = [TIMESTAMP_2, new Numeric('value', 32)]
-    static override metadataField: Field = new Enum('msg_metadata', 8, analog_sensor_id)
-    declare time: number
-    declare value: number
-}
+export class SENSOR_ANALOG32 extends payload([
+    TIMESTAMP_2,
+    new Numeric('value', 32),
+], new Enum('msg_metadata', 8, analog_sensor_id)) {}
 
-export class SENSOR_2D_ANALOG24 extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('value_x', 24),
-        new Numeric('value_y', 24),
-    ]
-    static override metadataField: Field = new Enum('msg_metadata', 8, dem_2d_sensor_id)
-    declare time: number
-    declare value_x: number
-    declare value_y: number
-}
+export class SENSOR_2D_ANALOG24 extends payload([
+    TIMESTAMP_2,
+    new Numeric('value_x', 24),
+    new Numeric('value_y', 24),
+], new Enum('msg_metadata', 8, dem_2d_sensor_id)) {}
 
-export class SENSOR_3D_ANALOG16 extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('value_x', 16),
-        new Numeric('value_y', 16),
-        new Numeric('value_z', 16),
-    ]
-    static override metadataField: Field = new Enum('msg_metadata', 8, dem_3d_sensor_id)
-    declare time: number
-    declare value_x: number
-    declare value_y: number
-    declare value_z: number
-}
+export class SENSOR_3D_ANALOG16 extends payload([
+    TIMESTAMP_2,
+    new Numeric('value_x', 16),
+    new Numeric('value_y', 16),
+    new Numeric('value_z', 16),
+], new Enum('msg_metadata', 8, dem_3d_sensor_id)) {}
 
-export class GPS_TIMESTAMP extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('hrs', 8),
-        new Numeric('mins', 8),
-        new Numeric('secs', 8),
-        new Numeric('dsecs', 8),
-    ]
-    declare time: number
-    declare hrs: number
-    declare mins: number
-    declare secs: number
-    declare dsecs: number
-}
+export class GPS_TIMESTAMP extends payload([
+    TIMESTAMP_2,
+    new Numeric('hrs', 8),
+    new Numeric('mins', 8),
+    new Numeric('secs', 8),
+    new Numeric('dsecs', 8),
+]) {}
 
-export class GPS_LATITUDE extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('degs', 8),
-        new Numeric('mins', 8),
-        new Numeric('dmins', 16),
-        new ASCII('direction', 8),
-    ]
-    declare time: number
-    declare degs: number
-    declare mins: number
-    declare dmins: number
-    declare direction: string
-}
+export class GPS_LATITUDE extends payload([
+    TIMESTAMP_2,
+    new Numeric('degs', 8),
+    new Numeric('mins', 8),
+    new Numeric('dmins', 16),
+    new ASCII('direction', 8),
+]) {}
 
-export class GPS_LONGITUDE extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('degs', 8),
-        new Numeric('mins', 8),
-        new Numeric('dmins', 16),
-        new ASCII('direction', 8),
-    ]
-    declare time: number
-    declare degs: number
-    declare mins: number
-    declare dmins: number
-    declare direction: string
-}
+export class GPS_LONGITUDE extends payload([
+    TIMESTAMP_2,
+    new Numeric('degs', 8),
+    new Numeric('mins', 8),
+    new Numeric('dmins', 16),
+    new ASCII('direction', 8),
+]) {}
 
-export class GPS_ALTITUDE extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('altitude', 32),
-        new Numeric('daltitude', 8),
-    ]
-    declare time: number
-    declare altitude: number
-    declare daltitude: number
-}
+export class GPS_ALTITUDE extends payload([
+    TIMESTAMP_2,
+    new Numeric('altitude', 32),
+    new Numeric('daltitude', 8),
+]) {}
 
-export class GPS_INFO extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('num_sats', 8),
-        new Numeric('quality', 8),
-    ]
-    declare time: number
-    declare num_sats: number
-    declare quality: number
-}
+export class GPS_INFO extends payload([
+    TIMESTAMP_2,
+    new Numeric('num_sats', 8),
+    new Numeric('quality', 8),
+]) {}
 
-export class STREAM_STATUS extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('total_size', 24),
-        new Numeric('tx_size', 24),
-    ]
-    declare time: number
-    declare total_size: number
-    declare tx_size: number
-}
+export class STREAM_STATUS extends payload([
+    TIMESTAMP_2,
+    new Numeric('total_size', 24),
+    new Numeric('tx_size', 24),
+]) {}
 
-export class STREAM_DATA extends ParsleyDataPayload {
-    // Metadata is SEQ_ID (numeric per docs); inherits default MESSAGE_METADATA.
-    static override fields: Field[] = [TIMESTAMP_2, new ASCII('data', 48)]
-    declare time: number
-    declare data: string
-}
+// Metadata is SEQ_ID (numeric per docs); uses default MESSAGE_METADATA.
+export class STREAM_DATA extends payload([
+    TIMESTAMP_2,
+    new ASCII('data', 48),
+]) {}
 
-export class STREAM_RETRY extends ParsleyDataPayload {
-    static override fields: Field[] = [TIMESTAMP_2]
-    declare time: number
-}
+export class STREAM_RETRY extends payload([
+    TIMESTAMP_2,
+]) {}
 
-export class TELEMETRY_INFO extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('lqi', 8),
-        new Numeric('rssi', 8),
-    ]
-    declare time: number
-    declare lqi: number
-    declare rssi: number
-}
+export class TELEMETRY_INFO extends payload([
+    TIMESTAMP_2,
+    new Numeric('lqi', 8),
+    new Numeric('rssi', 8),
+]) {}
 
-export class TELEMETRY_STATE_SWITCH extends ParsleyDataPayload {
-    static override fields: Field[] = [TIMESTAMP_2]
-    static override metadataField: Field = new Enum('msg_metadata', 8, board_inst_id)
-    declare time: number
-}
+export class TELEMETRY_STATE_SWITCH extends payload([
+    TIMESTAMP_2,
+], new Enum('msg_metadata', 8, board_inst_id)) {}
 
-export class CANARD_FIRMWARE_ERROR extends ParsleyDataPayload {
-    static override fields: Field[] = [
-        TIMESTAMP_2,
-        new Numeric('error_code', 32),
-        new Numeric('severity', 8),
-    ]
-    declare time: number
-    declare error_code: number
-    declare severity: number
-}
+export class CANARD_FIRMWARE_ERROR extends payload([
+    TIMESTAMP_2,
+    new Numeric('error_code', 32),
+    new Numeric('severity', 8),
+]) {}
 
-export class LEDS_ON extends ParsleyDataPayload {
-    static override fields: Field[] = []
-}
+export class LEDS_ON extends payload([]) {}
 
-export class LEDS_OFF extends ParsleyDataPayload {
-    static override fields: Field[] = []
-}
+export class LEDS_OFF extends payload([]) {}
 
 // Registry — exhaustive coverage of msg_type enforced by `satisfies`
 
@@ -366,7 +268,7 @@ export const MESSAGE_DEFS = {
     CANARD_FIRMWARE_ERROR,
     LEDS_ON,
     LEDS_OFF,
-} satisfies Record<keyof typeof msg_type, typeof ParsleyDataPayload>
+} satisfies Record<keyof typeof msg_type, PayloadBase>
 
 export type MessageDefKey = keyof typeof MESSAGE_DEFS
 
