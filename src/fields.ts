@@ -97,7 +97,7 @@ export class ASCII<N extends string = string> extends Field<N> {
     }
 }
 
-export class Enum<N extends string = string> extends Field<N> {
+export class Enum<N extends string = string, K extends string = string> extends Field<N> {
     /*
     Transcodes binary data using a user-defined dictionary.
 
@@ -106,18 +106,18 @@ export class Enum<N extends string = string> extends Field<N> {
     b'\x01\x60' <=> 'RESET_CMD'
     */
 
-    map_key_val: Record<string, number>;
-    map_val_key: Record<number, string>;
+    map_key_val: Record<K, number>;
+    map_val_key: Record<number, K>;
 
-    constructor(name: N, length: number, map_key_val: Record<string, number>) {
+    constructor(name: N, length: number, map_key_val: Record<K, number>) {
         super(name, length);
         this.map_key_val = map_key_val;
-        this.map_val_key = Object.fromEntries(
-            Object.entries(map_key_val).map(([k, v]) => [v, k]),
-        );
+        // Object.entries can't infer value types from a generic-keyed Record
+        const entries = Object.entries(map_key_val) as [K, number][];
+        this.map_val_key = Object.fromEntries(entries.map(([k, v]) => [v, k]));
 
-        const valueSize = Object.values(map_key_val).length;
-        const uniqueValueSize = new Set(Object.values(map_key_val)).size;
+        const valueSize = entries.length;
+        const uniqueValueSize = new Set(entries.map(([, v]) => v)).size;
         if (valueSize !== uniqueValueSize) {
             throw new Error(
                 `Mapping "${this.name}" is not bijective: has ${valueSize} values but only ${uniqueValueSize} are unique`,
@@ -125,7 +125,7 @@ export class Enum<N extends string = string> extends Field<N> {
         }
 
         const max = BigInt(1) << BigInt(length);
-        for (const [k, v] of Object.entries(map_key_val)) {
+        for (const [k, v] of entries) {
             if (v < 0) {
                 throw new Error(`Mapping value ${v} for key ${k} must be non-negative`);
             }
@@ -137,7 +137,7 @@ export class Enum<N extends string = string> extends Field<N> {
         }
     }
 
-    public decode(data: bigint): string {
+    public decode(data: bigint): K {
         const key = Number(data);
         const name = this.map_val_key[key];
         if (name === undefined) {
@@ -146,7 +146,7 @@ export class Enum<N extends string = string> extends Field<N> {
         return name;
     }
 
-    public encode(value: string): [bigint, number] {
+    public encode(value: K): [bigint, number] {
         if (!Object.prototype.hasOwnProperty.call(this.map_key_val, value)) {
             throw new Error(`Key "${value}" not found in map "${this.name}"`);
         }
