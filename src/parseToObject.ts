@@ -3,14 +3,13 @@ Top-level CAN message parser.
 
 Mirrors Python `parse_to_object.py`: SID decoded incrementally, board ids softened
 (hexify fallback on enum miss), msg_type/payload hard-fail to ParsleyError, empty
-payloads return data=null.
+payloads return data={}.
 
 Wire format spec: https://docs.waterloorocketry.com/avionics/rocketcan/index.html
 */
 
 import { BitString } from './bitString.js'
 import { Enum } from './fields.js'
-import type { Field } from './fields.js'
 import {
     BOARD_INST_ID,
     BOARD_TYPE_ID,
@@ -18,10 +17,10 @@ import {
     MESSAGE_PRIO,
     MESSAGE_SID_LEN,
     MESSAGE_TYPE,
-    MESSAGE_DEFS,
-    ParsleyDataPayload,
+    MESSAGE_SCHEMAS,
+    decodeMessage,
 } from './messageDefs.js'
-import type { MessageDefKey, ParsleyMessage } from './messageDefs.js'
+import type { MessageSchemaKey, MessageSchema, ParsleyMessage } from './messageDefs.js'
 import type { ParsleyError } from './schemas.js'
 import type { msg_prio, board_type_id, board_inst_id } from './message_types.js'
 
@@ -38,13 +37,13 @@ function hexify(bytes: Uint8Array): string {
     )
 }
 
-function safeDecode(field: Field, raw: bigint): string {
+function safeDecode(field: Enum, raw: bigint): string {
     try {
-        return field.decode(raw) as string
+        return field.decode(raw)
     } catch {
         // Render the raw bits as hex (length rounded up to the nearest nibble).
         const nibbles = Math.ceil(field.length / 4)
-        return '0x' + raw.toString(16).toUpperCase().padStart(nibbles, '0')
+        return `0x${raw.toString(16).toUpperCase().padStart(nibbles, '0')}`
     }
 }
 
@@ -151,12 +150,11 @@ export function parseToObject(
     // Numeric metadata is the default fallback shown when msg_type decode fails too.
     const metadataNumeric = Number(metaRaw)
 
-    let msg_type: MessageDefKey
-    let cls: typeof ParsleyDataPayload
+    let msg_type: MessageSchemaKey
+    let msgSchema: MessageSchema
     try {
-        msg_type = MESSAGE_TYPE.decode(typeRaw) as MessageDefKey
-        cls = MESSAGE_DEFS[msg_type as MessageDefKey]
-        if (!cls) throw new Error(`Unknown msg_type ${String(msg_type)}`)
+        msg_type = MESSAGE_TYPE.decode(typeRaw)
+        msgSchema = MESSAGE_SCHEMAS[msg_type] // guarenteed to have a key in MESSAGE_TYPE (enforced by satisfies)
     } catch (err) {
         return {
             msg_prio,
@@ -172,14 +170,14 @@ export function parseToObject(
     // Per-msg-type metadata typing; fall back to numeric on enum miss.
     let msg_metadata: string | number
     try {
-        msg_metadata = cls.metadataField.decode(metaRaw) as string | number
+        msg_metadata = msgSchema.metadataField.decode(metaRaw) as string | number
     } catch {
         msg_metadata = metadataNumeric
     }
 
-    let data: InstanceType<typeof ParsleyDataPayload> | null
+    let data: Record<string, unknown>
     try {
-        data = cls.fields.length === 0 ? null : cls.decode(new BitString(msgData))
+        data = decodeMessage(msgSchema, new BitString(msgData))
     } catch (err) {
         return {
             msg_prio,
@@ -192,8 +190,6 @@ export function parseToObject(
         }
     }
 
-    // Cast through `unknown` because TS can't see that `msg_type` discriminates `data`'s
-    // concrete subclass — at runtime the invariant holds (verified by `data instanceof MESSAGE_DEFS[msg_type]`).
     return {
         msg_prio,
         msg_type,
@@ -201,7 +197,7 @@ export function parseToObject(
         board_inst_id,
         msg_metadata,
         data,
-    } as unknown as ParsleyMessage
+    } as ParsleyMessage
 }
 
 // Render a partially-decoded msg_type bigint back as hex bytes, padded to the field width.
@@ -224,10 +220,9 @@ const BOARD_TYPE_ID_LEN = Math.max(...Object.keys(BOARD_TYPE_ID.map_key_val).map
 const BOARD_INST_ID_LEN = Math.max(...Object.keys(BOARD_INST_ID.map_key_val).map((k) => k.length))
 const MSG_METADATA_LEN = Math.max(
     0,
-    ...Object.values(MESSAGE_DEFS)
-        .map((cls) => cls.metadataField)
-        .filter((f): f is Enum => f instanceof Enum)
-        .flatMap((f) => Object.keys(f.map_key_val).map((k) => k.length)),
+    ...Object.values(MESSAGE_SCHEMAS).flatMap(({ metadataField }) =>
+        metadataField instanceof Enum ? metadataField.get_keys().map((k) => k.length) : [],
+    ),
 )
 
 function padRight(s: string, len: number): string {
@@ -243,14 +238,12 @@ export function formatLine(parsed: ParsleyMessage): string {
         ` ${padRight(String(parsed.msg_metadata), MSG_METADATA_LEN)} ]`
 
     let body = ''
-    if (parsed.data !== null) {
-        for (const [k, v] of Object.entries(parsed.data as Record<string, unknown>)) {
-            // Match Python's `{v:.3f}` for floats — JS doesn't distinguish int from float,
-            // so format any non-integer number to 3 decimals.
-            const formatted =
-                typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(3) : String(v)
-            body += ` ${k}: ${formatted}`
-        }
+    for (const [k, v] of Object.entries(parsed.data)) {
+        // Match Python's `{v:.3f}` for floats — JS doesn't distinguish int from float,
+        // so format any non-integer number to 3 decimals.
+        const formatted =
+            typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(3) : String(v)
+        body += ` ${k}: ${formatted}`
     }
     return header + body
 }
@@ -258,17 +251,19 @@ export function formatLine(parsed: ParsleyMessage): string {
 // encodeData — reverse direction: parsed object -> (sid, msgData)
 
 export interface ParsedMessageLike {
-    msg_prio: keyof typeof msg_prio | string
-    msg_type: MessageDefKey
-    board_type_id: keyof typeof board_type_id | string
-    board_inst_id: keyof typeof board_inst_id | string
+    msg_prio: keyof typeof msg_prio
+    msg_type: MessageSchemaKey
+    board_type_id: keyof typeof board_type_id
+    board_inst_id: keyof typeof board_inst_id
     msg_metadata: string | number
-    data: Record<string, unknown> | null
+    data: Record<string, unknown>
 }
 
 export function encodeData(parsed: ParsedMessageLike): { sid: bigint; data: Uint8Array } {
-    const cls = MESSAGE_DEFS[parsed.msg_type as MessageDefKey]
-    if (!cls) throw new Error(`Unknown msg_type "${String(parsed.msg_type)}"`)
+    // Widened to MessageSchema: `parsed.data` is runtime input, so fields encode through the
+    // base `Field.encode(unknown)` and validate their own values. The guard catches untyped JS callers.
+    const msgSchema: MessageSchema | undefined = MESSAGE_SCHEMAS[parsed.msg_type]
+    if (!msgSchema) throw new Error(`Unknown msg_type "${String(parsed.msg_type)}"`)
 
     // ---- Build SID ----
     const sidBits = new BitString()
@@ -278,27 +273,21 @@ export function encodeData(parsed: ParsedMessageLike): { sid: bigint; data: Uint
     sidBits.push(...BOARD_INST_ID.encode(parsed.board_inst_id))
     // If the metadata field is an Enum but the caller passed a raw int, fall back
     // to the 8-bit numeric MESSAGE_METADATA encoding — mirrors parsley PR #66.
-    if (cls.metadataField instanceof Enum && typeof parsed.msg_metadata === 'number') {
+    if (msgSchema.metadataField instanceof Enum && typeof parsed.msg_metadata === 'number') {
         sidBits.push(...MESSAGE_METADATA.encode(parsed.msg_metadata))
     } else {
-        sidBits.push(...cls.metadataField.encode(parsed.msg_metadata))
+        sidBits.push(...msgSchema.metadataField.encode(parsed.msg_metadata))
     }
     const sid = sidBits.pop(MESSAGE_SID_LEN)
 
     // ---- Build payload data ----
     const dataBits = new BitString()
     let totalBits = 0
-    if (parsed.data === null) {
-        if (cls.fields.length > 0) {
-            throw new Error(`msg_type "${String(parsed.msg_type)}" requires payload data, got null`)
-        }
-    } else {
-        for (const field of cls.fields) {
-            const value = (parsed.data as Record<string, unknown>)[field.name]
-            const [bits, len] = field.encode(value)
-            dataBits.push(bits, len)
-            totalBits += len
-        }
+    for (const field of msgSchema.fields) {
+        const value = parsed.data[field.name]
+        const [bits, len] = field.encode(value)
+        dataBits.push(bits, len)
+        totalBits += len
     }
 
     const byteCount = Math.ceil(totalBits / 8)
