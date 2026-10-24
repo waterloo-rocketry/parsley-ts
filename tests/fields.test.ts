@@ -303,16 +303,16 @@ describe('Bitfield', () => {
     // [bigint value, hex display, expected flag]
     const singleBitCases: [bigint, string, string][] = [
         [0x0000n, '0x0000', 'E_NOMINAL'],
-        [0x0001n, '0x0001', 'E_5V_OVER_CURRENT'],
-        [0x0002n, '0x0002', 'E_5V_OVER_VOLTAGE'],
-        [0x0004n, '0x0004', 'E_5V_UNDER_VOLTAGE'],
-        [0x0008n, '0x0008', 'E_12V_OVER_CURRENT'],
-        [0x0010n, '0x0010', 'E_12V_OVER_VOLTAGE'],
-        [0x0020n, '0x0020', 'E_12V_UNDER_VOLTAGE'],
-        [0x0040n, '0x0040', 'E_BATT_OVER_CURRENT'],
-        [0x0080n, '0x0080', 'E_BATT_OVER_VOLTAGE'],
-        [0x0100n, '0x0100', 'E_BATT_UNDER_VOLTAGE'],
-        [0x0200n, '0x0200', 'E_MOTOR_OVER_CURRENT'],
+        [0x0001n, '0x0001', 'E_5V_OVER_CURR'],
+        [0x0002n, '0x0002', 'E_5V_OVER_VOLT'],
+        [0x0004n, '0x0004', 'E_5V_UNDER_VOLT'],
+        [0x0008n, '0x0008', 'E_12V_OVER_CURR'],
+        [0x0010n, '0x0010', 'E_12V_OVER_VOLT'],
+        [0x0020n, '0x0020', 'E_12V_UNDER_VOLT'],
+        [0x0040n, '0x0040', 'E_BATT_OVER_CURR'],
+        [0x0080n, '0x0080', 'E_BATT_OVER_VOLT'],
+        [0x0100n, '0x0100', 'E_BATT_UNDER_VOLT'],
+        [0x0200n, '0x0200', 'E_MOTOR_OVER_CURR'],
         [0x0400n, '0x0400', 'E_IO_ERROR'],
         [0x0800n, '0x0800', 'E_FS_ERROR'],
         [0x1000n, '0x1000', 'E_WATCHDOG_TIMEOUT'],
@@ -326,8 +326,8 @@ describe('Bitfield', () => {
 
     it('decodes combined flags', () => {
         const bf = make()
-        expect(bf.decode(0x0003n)).toBe('E_5V_OVER_CURRENT|E_5V_OVER_VOLTAGE')
-        expect(bf.decode(0x0005n)).toBe('E_5V_OVER_CURRENT|E_5V_UNDER_VOLTAGE')
+        expect(bf.decode(0x0003n)).toBe('E_5V_OVER_CURR|E_5V_OVER_VOLT')
+        expect(bf.decode(0x0005n)).toBe('E_5V_OVER_CURR|E_5V_UNDER_VOLT')
     })
 
     it('decodes a custom (raw) bitfield as a zero-padded hex string', () => {
@@ -341,10 +341,10 @@ describe('Bitfield', () => {
 
     const encodeCases: [string, bigint][] = [
         ['E_NOMINAL', 0x0000n],
-        ['E_5V_OVER_CURRENT', 0x0001n],
-        ['E_5V_OVER_VOLTAGE', 0x0002n],
-        ['E_5V_OVER_CURRENT|E_5V_OVER_VOLTAGE', 0x0003n],
-        ['E_5V_OVER_CURRENT|E_5V_UNDER_VOLTAGE', 0x0005n],
+        ['E_5V_OVER_CURR', 0x0001n],
+        ['E_5V_OVER_VOLT', 0x0002n],
+        ['E_5V_OVER_CURR|E_5V_OVER_VOLT', 0x0003n],
+        ['E_5V_OVER_CURR|E_5V_UNDER_VOLT', 0x0005n],
         ['E_WATCHDOG_TIMEOUT', 0x1000n],
     ]
     it.each(encodeCases)('encode %s', (value, expected) => {
@@ -357,8 +357,8 @@ describe('Bitfield', () => {
         const bf = make()
         for (const v of [
             'E_NOMINAL',
-            'E_5V_OVER_CURRENT',
-            'E_5V_OVER_CURRENT|E_5V_OVER_VOLTAGE',
+            'E_5V_OVER_CURR',
+            'E_5V_OVER_CURR|E_5V_OVER_VOLT',
         ]) {
             expect(bf.decode(bf.encode(v)[0])).toBe(v)
         }

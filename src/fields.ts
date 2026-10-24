@@ -3,19 +3,19 @@ Field transcoders. Each field knows how to convert between a JS value and a
 bigint of `length` bits, LSB-aligned to match BitString.
 */
 
-export abstract class Field {
+export abstract class Field<N extends string = string> {
     /*
     Abstract base class for all fields that can be transcoded.
 
     Note: data is assumed to be LSB-aligned to match the implementation of BitString.
     */
 
-    name: string;
+    name: N; // generic N allows Field type to retain name (e.g. Field<"some_name">)
     length: number;
     unit: string;
     variable_length: boolean;
 
-    constructor(name: string, length: number, unit: string = "") {
+    constructor(name: N, length: number, unit: string = "") {
         this.name = name;
         if (length <= 0 || !Number.isInteger(length)) {
             throw new Error(`Field ${name}: length must be a positive integer, got ${length}`)
@@ -55,14 +55,14 @@ function byteSwap(value: bigint, byteCount: number): bigint {
     return result;
 }
 
-export class ASCII extends Field {
+export class ASCII<N extends string = string> extends Field<N> {
     /*
     Transcodes binary data and ASCII text.
 
     b'\x48\x65\x79' <=> 'Hey'
     Encoded data is left-aligned with trailing null bytes.
     */
-    constructor(name: string, length: number) {
+    constructor(name: N, length: number) {
         super(name, length);
         // ASCII characters are 8 bits each; sub-byte fields don't make sense.
         if (length % 8 !== 0) {
@@ -97,7 +97,7 @@ export class ASCII extends Field {
     }
 }
 
-export class Enum extends Field {
+export class Enum<N extends string = string, K extends string = string> extends Field<N> {
     /*
     Transcodes binary data using a user-defined dictionary.
 
@@ -106,18 +106,18 @@ export class Enum extends Field {
     b'\x01\x60' <=> 'RESET_CMD'
     */
 
-    map_key_val: Record<string, number>;
-    map_val_key: Record<number, string>;
+    map_key_val: Record<K, number>;
+    map_val_key: Record<number, K>;
 
-    constructor(name: string, length: number, map_key_val: Record<string, number>) {
+    constructor(name: N, length: number, map_key_val: Record<K, number>) {
         super(name, length);
         this.map_key_val = map_key_val;
-        this.map_val_key = Object.fromEntries(
-            Object.entries(map_key_val).map(([k, v]) => [v, k]),
-        );
+        // Object.entries can't infer value types from a generic-keyed Record
+        const entries = Object.entries(map_key_val) as [K, number][];
+        this.map_val_key = Object.fromEntries(entries.map(([k, v]) => [v, k]));
 
-        const valueSize = Object.values(map_key_val).length;
-        const uniqueValueSize = new Set(Object.values(map_key_val)).size;
+        const valueSize = entries.length;
+        const uniqueValueSize = new Set(entries.map(([, v]) => v)).size;
         if (valueSize !== uniqueValueSize) {
             throw new Error(
                 `Mapping "${this.name}" is not bijective: has ${valueSize} values but only ${uniqueValueSize} are unique`,
@@ -125,7 +125,7 @@ export class Enum extends Field {
         }
 
         const max = BigInt(1) << BigInt(length);
-        for (const [k, v] of Object.entries(map_key_val)) {
+        for (const [k, v] of entries) {
             if (v < 0) {
                 throw new Error(`Mapping value ${v} for key ${k} must be non-negative`);
             }
@@ -137,7 +137,7 @@ export class Enum extends Field {
         }
     }
 
-    public decode(data: bigint): string {
+    public decode(data: bigint): K {
         const key = Number(data);
         const name = this.map_val_key[key];
         if (name === undefined) {
@@ -146,7 +146,7 @@ export class Enum extends Field {
         return name;
     }
 
-    public encode(value: string): [bigint, number] {
+    public encode(value: K): [bigint, number] {
         if (!Object.prototype.hasOwnProperty.call(this.map_key_val, value)) {
             throw new Error(`Key "${value}" not found in map "${this.name}"`);
         }
@@ -158,7 +158,7 @@ export class Enum extends Field {
     }
 }
 
-export class Numeric extends Field {
+export class Numeric<N extends string = string> extends Field<N> {
     /*
     Transcodes binary data and numbers (ie. (un)signed and/or fixed point)
     with an optional scaling factor during transcoding.
@@ -170,7 +170,7 @@ export class Numeric extends Field {
     signed: boolean;
     big_endian: boolean;
 
-    constructor(name: string, length: number, scale: number = 1, signed: boolean = false, big_endian: boolean = true, unit: string = "") {
+    constructor(name: N, length: number, scale: number = 1, signed: boolean = false, big_endian: boolean = true, unit: string = "") {
         super(name, length, unit);
         this.scale = scale;
         this.signed = signed;
@@ -224,7 +224,7 @@ export class Numeric extends Field {
     }
 }
 
-export class Floating extends Field {
+export class Floating<N extends string = string> extends Field<N> {
     /*
     IEEE 754 single-precision float. 32 bits.
 
@@ -235,7 +235,7 @@ export class Floating extends Field {
     */
     big_endian: boolean;
 
-    constructor(name: string, big_endian: boolean = true, unit: string = "") {
+    constructor(name: N, big_endian: boolean = true, unit: string = "") {
         super(name, 32, unit);
         this.big_endian = big_endian;
     }
@@ -258,7 +258,7 @@ export class Floating extends Field {
     }
 }
 
-export class Switch extends Enum {
+export class Switch<N extends string = string> extends Enum<N> {
     /*
     An Enum wrapper to map binary data -> list of Fields using a user-defined dictionary.
 
@@ -269,7 +269,7 @@ export class Switch extends Enum {
     map_key_fields: Record<string, Field[]>;
 
     constructor(
-        name: string,
+        name: N,
         length: number,
         map_key_val: Record<string, number>,
         map_key_fields: Record<string, Field[]>,
@@ -287,7 +287,7 @@ export class Switch extends Enum {
     }
 }
 
-export class Bitfield extends Field {
+export class Bitfield<N extends string = string> extends Field<N> {
     /*
     Transcodes binary data and bitfields using a user-defined dictionary.
     
@@ -299,7 +299,7 @@ export class Bitfield extends Field {
     default: string;
     map_name_offset: Record<string, number> | null;
 
-    constructor(name: string, length: number, default_value: string = "DEFAULT_STRING", map_name_offset: Record<string, number> | null = null, unit: string = "") {
+    constructor(name: N, length: number, default_value: string = "DEFAULT_STRING", map_name_offset: Record<string, number> | null = null, unit: string = "") {
         super(name, length, unit);
         this.default = default_value;
         this.map_name_offset = map_name_offset;

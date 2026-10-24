@@ -79,17 +79,17 @@ describe('msg_type', () => {
 })
 
 describe('board_type_id', () => {
-    it('should have 14 board types', () => {
-        expect(Object.keys(board_type_id)).toHaveLength(14)
+    it('should have 15 board types', () => {
+        expect(Object.keys(board_type_id)).toHaveLength(15)
     })
 
     it('should validate valid board type values', () => {
         expect(board_type_id_schema.safeParse(0x00).success).toBe(true)
-        expect(board_type_id_schema.safeParse(0x0d).success).toBe(true)
+        expect(board_type_id_schema.safeParse(0x0e).success).toBe(true)
     })
 
     it('should reject invalid board type values', () => {
-        expect(board_type_id_schema.safeParse(0x0e).success).toBe(false)
+        expect(board_type_id_schema.safeParse(0x0f).success).toBe(false)
     })
 
     it('should have correct hex values', () => {
@@ -99,8 +99,8 @@ describe('board_type_id', () => {
 })
 
 describe('board_inst_id', () => {
-    it('should have 12 board instances', () => {
-        expect(Object.keys(board_inst_id)).toHaveLength(12)
+    it('should have 16 board instances', () => {
+        expect(Object.keys(board_inst_id)).toHaveLength(16)
     })
 
     it('should validate valid board instance values', () => {
@@ -109,13 +109,13 @@ describe('board_inst_id', () => {
     })
 
     it('should reject invalid board instance values', () => {
-        expect(board_inst_id_schema.safeParse(0x0C).success).toBe(false)
+        expect(board_inst_id_schema.safeParse(0x10).success).toBe(false)
     })
 })
 
 describe('actuator_id', () => {
-    it('should have 29 actuator IDs', () => {
-        expect(Object.keys(actuator_id)).toHaveLength(29)
+    it('should have 33 actuator IDs', () => {
+        expect(Object.keys(actuator_id)).toHaveLength(33)
     })
 
     it('should validate valid actuator ID values', () => {
@@ -124,7 +124,7 @@ describe('actuator_id', () => {
     })
 
     it('should reject invalid actuator ID values', () => {
-        expect(actuator_id_schema.safeParse(0x1D).success).toBe(false)
+        expect(actuator_id_schema.safeParse(0x21).success).toBe(false)
     })
 
     it('should have correct hex values', () => {
@@ -179,8 +179,8 @@ describe('alt_arm_state', () => {
 })
 
 describe('analog_sensor_id', () => {
-    it('should have 63 sensor IDs', () => {
-        expect(Object.keys(analog_sensor_id)).toHaveLength(64)
+    it('should have 81 sensor IDs', () => {
+        expect(Object.keys(analog_sensor_id)).toHaveLength(81)
     })
 
     it('should validate valid sensor ID values', () => {
@@ -189,7 +189,7 @@ describe('analog_sensor_id', () => {
     })
 
     it('should reject invalid sensor ID values', () => {
-        expect(analog_sensor_id_schema.safeParse(0x40).success).toBe(false)
+        expect(analog_sensor_id_schema.safeParse(0x51).success).toBe(false)
     })
 
     it('should have correct hex values for boundary entries', () => {
@@ -199,8 +199,8 @@ describe('analog_sensor_id', () => {
 })
 
 describe('dem_2d_sensor_id', () => {
-    it('should have 4 DEM 2D sensor IDs', () => {
-        expect(Object.keys(dem_2d_sensor_id)).toHaveLength(4)
+    it('should have 6 DEM 2D sensor IDs', () => {
+        expect(Object.keys(dem_2d_sensor_id)).toHaveLength(6)
     })
 
     it('should validate valid DEM 2D sensor ID values', () => {
@@ -209,13 +209,13 @@ describe('dem_2d_sensor_id', () => {
     })
 
     it('should reject invalid DEM 2D sensor ID values', () => {
-        expect(dem_2d_sensor_id_schema.safeParse(0x04).success).toBe(false)
+        expect(dem_2d_sensor_id_schema.safeParse(0x06).success).toBe(false)
     })
 })
 
 describe('dem_3d_sensor_id', () => {
-    it('should have 13 DEM 3D sensor IDs', () => {
-        expect(Object.keys(dem_3d_sensor_id)).toHaveLength(13)
+    it('should have 21 DEM 3D sensor IDs', () => {
+        expect(Object.keys(dem_3d_sensor_id)).toHaveLength(21)
     })
 
     it('should validate valid DEM 3D sensor ID values', () => {
@@ -224,13 +224,13 @@ describe('dem_3d_sensor_id', () => {
     })
 
     it('should reject invalid DEM 3D sensor ID values', () => {
-        expect(dem_3d_sensor_id_schema.safeParse(0x0D).success).toBe(false)
+        expect(dem_3d_sensor_id_schema.safeParse(0x15).success).toBe(false)
     })
 })
 
 describe('board_error_bitfield_offset', () => {
-    it('should have 16 error bitfield offsets', () => {
-        expect(Object.keys(board_error_bitfield_offset)).toHaveLength(17)
+    it('should have 20 error bitfield offsets', () => {
+        expect(Object.keys(board_error_bitfield_offset)).toHaveLength(20)
     })
 
     it('should validate valid offset values', () => {
@@ -239,6 +239,6 @@ describe('board_error_bitfield_offset', () => {
     })
 
     it('should reject invalid offset values', () => {
-        expect(board_error_bitfield_offset_schema.safeParse(0x11).success).toBe(false)
+        expect(board_error_bitfield_offset_schema.safeParse(0x14).success).toBe(false)
     })
 })
