@@ -16,10 +16,8 @@ import {
     MESSAGE_PRIO,
     MESSAGE_SID_LEN,
     MESSAGE_TYPE,
-    MESSAGE_DEFS,
     TIMESTAMP_2,
-    ACTUATOR_CMD,
-    GENERAL_BOARD_STATUS,
+    type MessagePayload,
 } from '../src/messageDefs.js'
 import { parseToObject } from '../src/parseToObject.js'
 import {
@@ -45,7 +43,7 @@ describe('parseToObject', () => {
             [TIMESTAMP_2, 1.234],
             [
                 new Bitfield('board_error_bitfield', 32, 'E_NOMINAL', board_error_bitfield_offset),
-                'E_5V_OVER_VOLTAGE|E_5V_EFUSE_FAULT',
+                'E_5V_OVER_VOLT|E_5V_EFUSE_FAULT',
             ],
         ])
 
@@ -57,10 +55,9 @@ describe('parseToObject', () => {
         expect(result.board_inst_id).toBe('GROUND')
         expect(result.msg_prio).toBe('HIGH')
         expect(result.msg_metadata).toBe(0)
-        expect(result.data).toBeInstanceOf(GENERAL_BOARD_STATUS)
-        const payload = result.data as GENERAL_BOARD_STATUS
+        const payload = result.data as MessagePayload<"GENERAL_BOARD_STATUS">
         expect(Math.abs(payload.time - 1.234)).toBeLessThan(FLOAT_TOLERANCE)
-        expect(payload.board_error_bitfield).toBe('E_5V_OVER_VOLTAGE|E_5V_EFUSE_FAULT')
+        expect(payload.board_error_bitfield).toBe('E_5V_OVER_VOLT|E_5V_EFUSE_FAULT')
     })
 
     it('parses DEBUG_RAW with partial-byte ASCII field', () => {
@@ -79,7 +76,7 @@ describe('parseToObject', () => {
         expect(result.msg_prio).toBe('LOW')
         expect(result.msg_metadata).toBe(0)
         expect(result.data).not.toBeNull()
-        const payload = result.data as { time: number; string: string }
+        const payload = result.data as MessagePayload<"DEBUG_RAW">
         expect(Math.abs(payload.time - 0.133)).toBeLessThan(FLOAT_TOLERANCE)
         expect(payload.string).toBe('zZz')
     })
@@ -103,7 +100,7 @@ describe('parseToObject', () => {
 
         expect(result.msg_type).toBe('SENSOR_ANALOG16')
         expect(result.msg_metadata).toBe('SENSOR_5V_VOLT')
-        const payload = result.data as { time: number; value: number }
+        const payload = result.data as MessagePayload<"SENSOR_ANALOG16">
         expect(Math.abs(payload.time - 12.345)).toBeLessThan(FLOAT_TOLERANCE)
         expect(payload.value).toBe(3300)
     })
@@ -140,9 +137,8 @@ describe('parseToObject', () => {
         if (isError(result)) throw new Error(`unexpected error: ${result.error}`)
 
         expect(result.msg_metadata).toBe('ACTUATOR_FUEL_INJECTOR_VALVE')
-        const payload = result.data as { cmd_state: string }
+        const payload = result.data as MessagePayload<"ACTUATOR_CMD">
         expect(payload.cmd_state).toBe('ACT_STATE_ON')
-        expect(result.data).toBeInstanceOf(ACTUATOR_CMD)
     })
 
     it('decodes SENSOR_ANALOG16 metadata as SENSOR_5V_CURR', () => {
@@ -163,7 +159,7 @@ describe('parseToObject', () => {
         if (isError(result)) throw new Error(`unexpected error: ${result.error}`)
 
         expect(result.msg_metadata).toBe('SENSOR_5V_CURR')
-        const payload = result.data as { value: number }
+        const payload = result.data as MessagePayload<"SENSOR_ANALOG16">
         expect(payload.value).toBe(4800)
     })
 
@@ -185,7 +181,7 @@ describe('parseToObject', () => {
         if (isError(result)) throw new Error(`unexpected error: ${result.error}`)
 
         expect(result.msg_metadata).toBe('ALTIMETER_STRATOLOGGER')
-        const payload = result.data as { alt_arm_state: string }
+        const payload = result.data as MessagePayload<"ALT_ARM_CMD">
         expect(payload.alt_arm_state).toBe('ALT_ARM_STATE_ARMED')
     })
 
@@ -200,7 +196,7 @@ describe('parseToObject', () => {
         if (isError(result)) throw new Error(`unexpected error: ${result.error}`)
 
         expect(result.msg_metadata).toBe(5)
-        const payload = result.data as { data: string }
+        const payload = result.data as MessagePayload<"STREAM_DATA">
         expect(payload.data).toBe('hello!')
     })
 
@@ -223,7 +219,7 @@ describe('parseToObject', () => {
         if (isError(result)) throw new Error(`unexpected error: ${result.error}`)
 
         expect(result.msg_metadata).toBe('DEM_2D_SENSOR_CANARD_MS5611_BARO_TEMP')
-        const payload = result.data as { value_x: number; value_y: number }
+        const payload = result.data as MessagePayload<"SENSOR_2D_ANALOG24">
         expect(payload.value_x).toBe(500)
         expect(payload.value_y).toBe(1000)
     })
@@ -248,7 +244,7 @@ describe('parseToObject', () => {
         if (isError(result)) throw new Error(`unexpected error: ${result.error}`)
 
         expect(result.msg_metadata).toBe('DEM_3D_SENSOR_CANARD_LSM6DSV32X_ACCEL')
-        const payload = result.data as { value_x: number; value_y: number; value_z: number }
+        const payload = result.data as MessagePayload<"SENSOR_3D_ANALOG16">
         expect(payload.value_x).toBe(100)
         expect(payload.value_y).toBe(200)
         expect(payload.value_z).toBe(300)
@@ -277,10 +273,9 @@ describe('parseToObject', () => {
         const result = parseToObject(sid, data)
         if (isError(result)) throw new Error(`unexpected error: ${result.error}`)
 
-        expect(result.data).toBeInstanceOf(ACTUATOR_CMD)
         expect(result.msg_metadata).toBe(255)
         expect(result.msg_type).toBe('ACTUATOR_CMD')
-        expect((result.data as { cmd_state: string }).cmd_state).toBe('ACT_STATE_ON')
+        expect((result.data as MessagePayload<"ACTUATOR_CMD">).cmd_state).toBe('ACT_STATE_ON')
     })
 
     it('returns ParsleyError on bad msg_type', () => {
@@ -397,7 +392,7 @@ describe('parseToObject', () => {
         expect(result.msg_type).toBe('LEDS_ON')
     })
 
-    it('returns the right class instance via MESSAGE_DEFS for instanceof discrimination', () => {
+    it('returns an ACTUATOR_CMD payload discriminated by msg_type', () => {
         const sid = createMsgSid(
             'HIGH',
             'ACTUATOR_CMD',
@@ -414,7 +409,9 @@ describe('parseToObject', () => {
         const result = parseToObject(sid, data)
         if (isError(result)) throw new Error(`unexpected error: ${result.error}`)
 
-        expect(result.data).toBeInstanceOf(MESSAGE_DEFS[result.msg_type])
-        expect(result.data).toBeInstanceOf(ACTUATOR_CMD)
+        expect(result.msg_type).toBe('ACTUATOR_CMD')
+        const payload = result.data as MessagePayload<"ACTUATOR_CMD">
+        expect(Math.abs(payload.time - 1.0)).toBeLessThan(FLOAT_TOLERANCE)
+        expect(payload.cmd_state).toBe('ACT_STATE_OFF')
     })
 })

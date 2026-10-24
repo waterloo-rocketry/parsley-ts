@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-    MESSAGE_DEFS,
+    MESSAGE_SCHEMAS,
     MESSAGE_METADATA,
     ACTUATOR_CMD,
     ACTUATOR_STATUS,
@@ -16,7 +16,6 @@ import {
     LEDS_OFF,
     STREAM_DATA,
     STREAM_RETRY,
-    ParsleyDataPayload,
 } from '../src/messageDefs.js'
 import { msg_type } from '../src/message_types.js'
 import { Enum, Numeric } from '../src/fields.js'
@@ -24,19 +23,13 @@ import { Enum, Numeric } from '../src/fields.js'
 describe('MESSAGE_DEFS registry', () => {
     it('covers every key in msg_type exactly once', () => {
         const msgTypeKeys = Object.keys(msg_type).sort()
-        const registryKeys = Object.keys(MESSAGE_DEFS).sort()
+        const registryKeys = Object.keys(MESSAGE_SCHEMAS).sort()
         expect(registryKeys).toEqual(msgTypeKeys)
         expect(registryKeys).toHaveLength(27)
     })
 
-    it('each entry extends ParsleyDataPayload', () => {
-        for (const cls of Object.values(MESSAGE_DEFS)) {
-            expect(cls.prototype).toBeInstanceOf(ParsleyDataPayload)
-        }
-    })
-
     it('each entry has a static fields array', () => {
-        for (const cls of Object.values(MESSAGE_DEFS)) {
+        for (const cls of Object.values(MESSAGE_SCHEMAS)) {
             expect(Array.isArray(cls.fields)).toBe(true)
         }
     })
@@ -71,13 +64,5 @@ describe('Per-msg-type metadataField overrides', () => {
         for (const cls of [GENERAL_BOARD_STATUS, LEDS_ON, LEDS_OFF, STREAM_DATA, STREAM_RETRY]) {
             expect(cls.metadataField).toBeInstanceOf(Numeric)
         }
-    })
-})
-
-describe('Generic decode walks fields and constructs instances', () => {
-    it('LEDS_ON.decode returns a LEDS_ON with no own properties', () => {
-        // Just exercise the inheritance — actual decoding tested via parseToObject.
-        // Confirm the class's static `decode` is the inherited base method.
-        expect(LEDS_ON.decode).toBe(ParsleyDataPayload.decode)
     })
 })

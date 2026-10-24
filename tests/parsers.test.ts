@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { BitString } from '../src/bitString.js'
-import { Enum, Numeric } from '../src/fields.js'
+import { ASCII, Enum, Numeric } from '../src/fields.js'
 import {
     MESSAGE_PRIO,
     MESSAGE_TYPE,
@@ -9,8 +9,8 @@ import {
     MESSAGE_METADATA,
     MESSAGE_SID_LEN,
     TIMESTAMP_2,
-    GENERAL_BOARD_STATUS,
     ACTUATOR_CMD,
+    MessagePayload,
 } from '../src/messageDefs.js'
 import {
     parseToObject,
@@ -25,8 +25,8 @@ import {
     BitstringParser,
 } from '../src/parsers.js'
 import { crc8 } from '../src/crc8.js'
-import { actuator_id, actuator_state, analog_sensor_id } from '../src/message_types.js'
-import { bigintToBytes, createMsgSid, encodeFields, splitFormatLine } from './utils.js'
+import { actuator_id, actuator_state, analog_sensor_id, board_inst_id, board_type_id, msg_prio } from '../src/message_types.js'
+import { bigintToBytes, createMsgSid, encodeFields, FLOAT_TOLERANCE, splitFormatLine } from './utils.js'
 
 function isError<T>(r: T | { error: string }): r is { error: string } & T {
     return r !== null && typeof r === 'object' && 'error' in (r as object)
@@ -136,20 +136,20 @@ describe('formatLine', () => {
 // encodeData — reverse direction
 
 describe('encodeData', () => {
-    it('round-trips a GENERAL_BOARD_STATUS via parseToObject', () => {
-        const sidBytes = createMsgSid('HIGH', 'GENERAL_BOARD_STATUS', 7, 'POWER', 'GROUND')
+    it('round-trips a DEBUG_RAW via parseToObject', () => {
+        const sidBytes = createMsgSid('HIGH', 'DEBUG_RAW', 7, 'POWER', 'GROUND')
         const dataBytes = encodeFields([
             [TIMESTAMP_2, 1.234],
-            [new Numeric('board_error_bitfield', 32), 0xdeadbeef],
+            [new ASCII('string', 48), "wahoo!"],
         ])
         const parsed = parseToObject(sidBytes, dataBytes)
         if (isError(parsed)) throw new Error(parsed.error)
 
         const encoded = encodeData({
-            msg_prio: parsed.msg_prio,
+            msg_prio: parsed.msg_prio as keyof typeof msg_prio,
             msg_type: parsed.msg_type,
-            board_type_id: parsed.board_type_id,
-            board_inst_id: parsed.board_inst_id,
+            board_type_id: parsed.board_type_id as keyof typeof board_type_id,
+            board_inst_id: parsed.board_inst_id as keyof typeof board_inst_id,
             msg_metadata: parsed.msg_metadata,
             data: parsed.data as unknown as Record<string, unknown>,
         })
@@ -164,7 +164,9 @@ describe('encodeData', () => {
         expect(reparsed.board_type_id).toBe(parsed.board_type_id)
         expect(reparsed.board_inst_id).toBe(parsed.board_inst_id)
         expect(reparsed.msg_metadata).toBe(parsed.msg_metadata)
-        expect(reparsed.data).toBeInstanceOf(GENERAL_BOARD_STATUS)
+        const payload = reparsed.data as MessagePayload<"DEBUG_RAW">
+        expect(Math.abs(payload.time - 1.234)).toBeLessThan(FLOAT_TOLERANCE)
+        expect(payload.string).toBe('wahoo!')
     })
 
     it('encodes ACTUATOR_CMD with enum metadata', () => {
@@ -180,7 +182,7 @@ describe('encodeData', () => {
         const r = parseToObject(sid, encoded.data)
         if (isError(r)) throw new Error(r.error)
         expect(r.msg_metadata).toBe('ACTUATOR_FUEL_INJECTOR_VALVE')
-        expect(r.data).toBeInstanceOf(ACTUATOR_CMD)
+        expect(r.msg_type).toBe('ACTUATOR_CMD')
         expect((r.data as { cmd_state: string }).cmd_state).toBe('ACT_STATE_ON')
     })
 
@@ -191,7 +193,7 @@ describe('encodeData', () => {
             board_type_id: 'POWER',
             board_inst_id: 'GROUND',
             msg_metadata: 0,
-            data: null,
+            data: {},
         })
         expect(encoded.data.length).toBe(0)
     })
@@ -204,7 +206,7 @@ describe('encodeData', () => {
                 board_type_id: 'POWER',
                 board_inst_id: 'GROUND',
                 msg_metadata: 0,
-                data: null,
+                data: {},
             }),
         ).toThrow()
     })
